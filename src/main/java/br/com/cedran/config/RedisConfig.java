@@ -29,12 +29,6 @@ public class RedisConfig extends CachingConfigurerSupport {
     @Value("${spring.redis.usepool:true}")
     private Boolean usePool;
 
-//    @Bean
-//    @Override
-//    public CacheErrorHandler errorHandler() {
-//        return new GracefulCacheErrorHandler();
-//    }
-
     @Primary
     @Bean
     public JedisConnectionFactory cacheJedisConnectionFactory() {
