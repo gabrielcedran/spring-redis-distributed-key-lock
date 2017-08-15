@@ -16,7 +16,7 @@ To provide distributed lock when updating a key, you just have to inject the Cac
 If the number of retries exceeds, a LockException will be thrown.
 
 Warning: You should not perform lock in your entire application because it could cause performance issues.
-It should be used only where you really need to guarantee that concurrent processes don't overwrite each other.
+It should be used only where it is really needed to guarantee that concurrent processes don't overwrite each other.
 
 #### Example of usage:
 
@@ -38,5 +38,5 @@ It should be used only where you really need to guarantee that concurrent proces
 ```
 
 #### To be done:
-1. Create method guarantees lock but doesn't perform retries at all.
-2. Allow process to not perform anything when there is no record in cache
+1. Create method that guarantees lock but doesn't perform retries at all to simplify usage.
+2. Allow usage without default action when there is no cache value.
