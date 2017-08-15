@@ -1,18 +1,19 @@
-package br.com.cedran.mechanism;
+package br.com.cedran.redis.distributed.lock.mechanism;
 
 
+import br.com.cedran.redis.distributed.lock.annotation.DistributedCacheLock;
+import br.com.cedran.redis.distributed.lock.exception.LockException;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.annotation.Around;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.retry.RetryCallback;
-import org.springframework.retry.RetryContext;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
-import org.springframework.retry.backoff.BackOffPolicy;
 import org.springframework.retry.backoff.ExponentialBackOffPolicy;
 import org.springframework.retry.policy.SimpleRetryPolicy;
-import org.springframework.retry.policy.TimeoutRetryPolicy;
 import org.springframework.retry.support.RetryTemplate;
 import org.springframework.stereotype.Component;
 
@@ -31,9 +32,9 @@ public class CacheManagerCustom<T, R> {
 
     @Retryable(
             value = { LockException.class },
-            maxAttempts = 10,
+            maxAttempts = 5,
             backoff = @Backoff(delay = 500))
-    public void updateWithLock(Function<T, R> function, Supplier<R> supplier, String cacheName, Object key) {
+    public void updateWithLock(Function<T, R> operationWhenExistent, Supplier<R> operationWhenNonExistent, String cacheName, Object key) {
         UUID pid = UUID.randomUUID();
 
         Cache lockCache = tryToLock(key, pid);
@@ -43,8 +44,8 @@ public class CacheManagerCustom<T, R> {
 
         R transformed = Optional.ofNullable(valueWrapper)
                 .map(object -> (T) object.get())
-                .map(function)
-                .orElseGet(supplier);
+                .map(operationWhenExistent)
+                .orElseGet(operationWhenNonExistent);
 
         verifyLock(key, pid, lockCache);
 
@@ -79,7 +80,7 @@ public class CacheManagerCustom<T, R> {
     }
 
 
-    public void updateWithLock(Function<T, R> function, Supplier<R> supplier, String cacheName, Object key, Integer maxRetries, Integer delay) {
+    public void updateWithLock(Function<T, R> operationWhenExistent, Supplier<R> operationWhenNonExistent, String cacheName, Object key, Integer maxRetries, Integer delay) {
         UUID pid = UUID.randomUUID();
 
         RetryTemplate template = new RetryTemplate();
@@ -91,8 +92,9 @@ public class CacheManagerCustom<T, R> {
         template.setBackOffPolicy(backoff);
 
         template.execute((RetryCallback<Object, RuntimeException>) retryContext -> {
-            updateWithLock(function, supplier, cacheName, key);
+            updateWithLock(operationWhenExistent, operationWhenNonExistent, cacheName, key);
             return null;
         });
     }
+
 }

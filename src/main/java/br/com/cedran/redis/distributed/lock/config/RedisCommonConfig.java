@@ -1,49 +1,43 @@
-package br.com.cedran.config;
+package br.com.cedran.redis.distributed.lock.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CachingConfigurerSupport;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.interceptor.CacheErrorHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 
+import java.util.Collections;
+
+/**
+ * Created by gabriel on 8/15/17.
+ */
 @Configuration
 @EnableCaching
-@Profile({"!test"})
-public class RedisConfig extends CachingConfigurerSupport {
+public class RedisCommonConfig extends CachingConfigurerSupport {
 
-    @Value("${spring.redis.host:localhost}")
-    private String redisHost;
+    @Value("${br.com.cedran.lockCacheName:lock}")
+    private String lockCacheName;
 
-    @Value("${spring.redis.port:6379}")
-    private Integer redisPort;
+    @Value("${spring.redis.lockDefaultExpiration:10}")
+    private Long lockDefaultExpiration;
 
-    @Value("${spring.redis.usepool:true}")
-    private Boolean usePool;
-
-    @Primary
-    @Bean
-    public JedisConnectionFactory cacheJedisConnectionFactory() {
-        JedisConnectionFactory jedisConnectionFactory = new JedisConnectionFactory();
-        jedisConnectionFactory.setHostName(redisHost);
-        jedisConnectionFactory.setPort(redisPort);
-        jedisConnectionFactory.setUsePool(usePool);
-        jedisConnectionFactory.afterPropertiesSet();
-        return jedisConnectionFactory;
-    }
+    @Autowired
+    private RedisConnectionFactory redisConnectionFactory;
 
     @Bean
     public RedisTemplate<String, String> cacheRedisTemplate() {
         RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(cacheJedisConnectionFactory());
+        redisTemplate.setConnectionFactory(redisConnectionFactory);
 
         redisTemplate.setKeySerializer(new StringRedisSerializer());
         redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer());
@@ -61,7 +55,7 @@ public class RedisConfig extends CachingConfigurerSupport {
         redisCacheManager.setTransactionAware(true);
         redisCacheManager.setLoadRemoteCachesOnStartup(true);
         redisCacheManager.afterPropertiesSet();
-        //redisCacheManager.setExpires(Collections.singletonMap("cache", 1000));
+        redisCacheManager.setExpires(Collections.singletonMap(lockCacheName, lockDefaultExpiration));
         return redisCacheManager;
     }
 }

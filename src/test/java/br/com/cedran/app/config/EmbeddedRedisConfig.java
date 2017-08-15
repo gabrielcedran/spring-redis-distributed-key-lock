@@ -1,4 +1,4 @@
-package br.com.cedran.config;
+package br.com.cedran.app.config;
 
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
@@ -18,7 +18,6 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 @Configuration
-@EnableCaching
 public class EmbeddedRedisConfig {
 
     private static final int REDIS_PORT = SocketUtils.findAvailableTcpPort();
@@ -49,26 +48,4 @@ public class EmbeddedRedisConfig {
         return jedisConnectionFactory;
     }
 
-    @Bean
-    public RedisTemplate<String, String> cacheRedisTemplate() {
-        RedisTemplate<String, String> redisTemplate = new RedisTemplate<>();
-        redisTemplate.setConnectionFactory(cacheJedisConnectionFactory());
-
-        redisTemplate.setKeySerializer(new StringRedisSerializer());
-        redisTemplate.setValueSerializer(new GenericJackson2JsonRedisSerializer());
-
-        redisTemplate.afterPropertiesSet();
-        return redisTemplate;
-    }
-
-    @Bean
-    public CacheManager cacheManager() {
-        RedisCacheManager redisCacheManager = new RedisCacheManager(cacheRedisTemplate());
-        redisCacheManager.setUsePrefix(true);
-        redisCacheManager.setCacheNames(null);
-        redisCacheManager.setTransactionAware(true);
-        redisCacheManager.setLoadRemoteCachesOnStartup(true);
-        redisCacheManager.afterPropertiesSet();
-        return redisCacheManager;
-    }
 }
